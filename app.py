@@ -1,19 +1,17 @@
 import streamlit as st
 from PIL import Image
 
-st.set_page_config(page_title="ScanText Pro - Upload Test", layout="centered")
+st.set_page_config(page_title="ScanText Pro - Upload Mode", layout="centered")
 
 st.title("ScanText Pro")
 st.subheader("Mode: Upload Gambar (Tanpa OCR)")
 st.success("Fitur upload gambar aktif dan stabil.")
 
-# Upload gambar
 uploaded_file = st.file_uploader(
     "Upload gambar (PNG, JPG, JPEG)",
     type=["png", "jpg", "jpeg"]
 )
 
-# Jika ada file yang diupload
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file)
