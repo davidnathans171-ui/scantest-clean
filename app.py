@@ -4,13 +4,10 @@ import easyocr
 import numpy as np
 import datetime
 
-# =====================
-# Page Config
-# =====================
 st.set_page_config(page_title="ScanText Pro – OCR + Editor", layout="centered")
 
 # =====================
-# Dark Mode Toggle
+# Dark Mode
 # =====================
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
@@ -19,21 +16,18 @@ dark = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
 st.session_state.dark_mode = dark
 
 if dark:
-    st.markdown(
-        """
-        <style>
-        body {background-color: #0E1117; color: white;}
-        textarea, input {background-color:#262730 !important; color:white !important;}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <style>
+    body {background-color: #0E1117; color: white;}
+    textarea, input {background-color:#262730 !important; color:white !important;}
+    </style>
+    """, unsafe_allow_html=True)
 
 # =====================
 # Title
 # =====================
 st.title("📄 ScanText Pro – OCR + Editor")
-st.success("OCR stabil + bisa diedit + mode gelap tersedia")
+st.success("OCR stabil + bisa diedit + kamera + dark mode")
 
 # =====================
 # Load OCR
@@ -45,29 +39,36 @@ def load_reader():
 reader = load_reader()
 
 # =====================
-# Upload Image
+# Upload / Camera
 # =====================
+st.subheader("📷 Ambil dari Kamera atau Upload Gambar")
+
+camera_image = st.camera_input("Gunakan kamera")
 uploaded_file = st.file_uploader(
-    "📷 Upload gambar (PNG, JPG, JPEG)",
+    "Atau upload gambar (PNG, JPG, JPEG)",
     type=["png", "jpg", "jpeg"]
 )
 
-if uploaded_file:
+image = None
+if camera_image:
+    image = Image.open(camera_image)
+elif uploaded_file:
     image = Image.open(uploaded_file)
+
+if image:
     st.image(image, caption="Preview Gambar", use_container_width=True)
 
     if st.button("🚀 Proses OCR"):
         with st.spinner("Memproses OCR..."):
             img_np = np.array(image)
             result = reader.readtext(img_np)
-
             text = "\n".join([r[1] for r in result])
 
             st.session_state.ocr_text = text
             st.session_state.show_editor = True
 
 # =====================
-# Default Session
+# Session Defaults
 # =====================
 if "ocr_text" not in st.session_state:
     st.session_state.ocr_text = ""
@@ -92,22 +93,18 @@ if "final_text" not in st.session_state:
 # =====================
 if st.session_state.show_editor:
 
-    st.subheader("✏️ Edit Metadata")
-
+    st.subheader("✏️ Edit Judul, Tanggal, Alamat")
     st.session_state.judul = st.text_input("Judul", st.session_state.judul)
     st.session_state.tanggal = st.text_input("Tanggal", st.session_state.tanggal)
     st.session_state.alamat = st.text_input("Alamat", st.session_state.alamat)
 
-    st.subheader("📝 Edit Isi Teks OCR")
+    st.subheader("📝 Edit Teks OCR")
     st.session_state.ocr_text = st.text_area(
         "Edit isi teks OCR:",
         value=st.session_state.ocr_text,
         height=250
     )
 
-    # =====================
-    # Final Text Builder
-    # =====================
     final_text = f"""
 {st.session_state.judul}
 
@@ -117,17 +114,15 @@ Alamat  : {st.session_state.alamat}
 {st.session_state.ocr_text}
 """.strip()
 
-    st.session_state.final_text = final_text
-
-    st.subheader("📄 Hasil Final (Bisa Diedit Langsung)")
+    st.subheader("📄 Hasil Final (Bisa Diedit)")
     st.session_state.final_text = st.text_area(
         "Teks Final:",
-        value=st.session_state.final_text,
+        value=final_text,
         height=300
     )
 
     st.download_button(
-        "⬇️ Download sebagai TXT",
+        "⬇️ Download TXT",
         st.session_state.final_text,
         file_name="hasil_ocr.txt"
     )
