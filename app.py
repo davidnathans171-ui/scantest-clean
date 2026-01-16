@@ -2,127 +2,99 @@ import streamlit as st
 from PIL import Image
 import easyocr
 import numpy as np
-import datetime
+from streamlit_image_crop import image_cropper
+from datetime import date
 
-st.set_page_config(page_title="ScanText Pro – OCR + Editor", layout="centered")
+st.set_page_config(page_title="ScanText Pro - OCR + Editor", layout="centered")
 
-# =====================
-# Dark Mode
-# =====================
-if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = False
-
-dark = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
-st.session_state.dark_mode = dark
+# ------------------ DARK MODE ------------------
+dark = st.toggle("🌙 Dark Mode")
 
 if dark:
     st.markdown("""
-    <style>
-    body {background-color: #0E1117; color: white;}
-    textarea, input {background-color:#262730 !important; color:white !important;}
-    </style>
+        <style>
+        body { background-color: #121212; color: white; }
+        textarea, input { background-color: #1f1f1f !important; color: white !important; }
+        </style>
     """, unsafe_allow_html=True)
 
-# =====================
-# Title
-# =====================
+# ------------------ TITLE ------------------
 st.title("📄 ScanText Pro – OCR + Editor")
-st.success("OCR stabil + bisa diedit + kamera + dark mode")
+st.success("OCR stabil + bisa diedit + kamera + crop + dark mode tersedia")
 
-# =====================
-# Load OCR
-# =====================
+# ------------------ OCR INIT ------------------
 @st.cache_resource
 def load_reader():
-    return easyocr.Reader(['en', 'id'], gpu=False)
+    return easyocr.Reader(['id', 'en'], gpu=False)
 
 reader = load_reader()
 
-# =====================
-# Upload / Camera
-# =====================
-st.subheader("📷 Ambil dari Kamera atau Upload Gambar")
-
-camera_image = st.camera_input("Gunakan kamera")
-uploaded_file = st.file_uploader(
-    "Atau upload gambar (PNG, JPG, JPEG)",
-    type=["png", "jpg", "jpeg"]
-)
+# ------------------ IMAGE INPUT ------------------
+st.subheader("📸 Upload / Ambil Gambar")
+img_source = st.radio("Sumber gambar:", ["Upload File", "Kamera"])
 
 image = None
-if camera_image:
-    image = Image.open(camera_image)
-elif uploaded_file:
-    image = Image.open(uploaded_file)
+
+if img_source == "Upload File":
+    uploaded = st.file_uploader("Upload gambar (PNG, JPG, JPEG)", ["png", "jpg", "jpeg"])
+    if uploaded:
+        image = Image.open(uploaded)
+
+elif img_source == "Kamera":
+    camera = st.camera_input("Ambil gambar dari kamera")
+    if camera:
+        image = Image.open(camera)
 
 if image:
-    st.image(image, caption="Preview Gambar", use_container_width=True)
+    st.image(image, caption="Gambar Asli", use_container_width=True)
 
-    if st.button("🚀 Proses OCR"):
+    # ------------------ CROP ------------------
+    st.subheader("✂️ Crop Gambar")
+    cropped = image_cropper(image, realtime_update=True, box_color="blue", aspect_ratio=None)
+    st.image(cropped, caption="Hasil Crop", use_container_width=True)
+
+    # ------------------ OCR BUTTON ------------------
+    if st.button("🔍 Proses OCR"):
         with st.spinner("Memproses OCR..."):
-            img_np = np.array(image)
+            img_np = np.array(cropped)
             result = reader.readtext(img_np)
-            text = "\n".join([r[1] for r in result])
 
-            st.session_state.ocr_text = text
-            st.session_state.show_editor = True
+            ocr_text = "\n".join([r[1] for r in result])
+            st.session_state["ocr_text"] = ocr_text
 
-# =====================
-# Session Defaults
-# =====================
-if "ocr_text" not in st.session_state:
-    st.session_state.ocr_text = ""
+# ------------------ EDIT AREA ------------------
+if "ocr_text" in st.session_state:
 
-if "show_editor" not in st.session_state:
-    st.session_state.show_editor = False
+    st.subheader("📝 Edit Informasi")
 
-if "judul" not in st.session_state:
-    st.session_state.judul = "HASIL OCR"
+    judul = st.text_input("Judul", "HASIL OCR")
+    tanggal = st.date_input("Tanggal", value=date.today())
+    alamat = st.text_input("Alamat", "Isi alamat di sini")
 
-if "tanggal" not in st.session_state:
-    st.session_state.tanggal = datetime.date.today().strftime("%d %B %Y")
-
-if "alamat" not in st.session_state:
-    st.session_state.alamat = "Isi alamat di sini"
-
-if "final_text" not in st.session_state:
-    st.session_state.final_text = ""
-
-# =====================
-# EDITOR
-# =====================
-if st.session_state.show_editor:
-
-    st.subheader("✏️ Edit Judul, Tanggal, Alamat")
-    st.session_state.judul = st.text_input("Judul", st.session_state.judul)
-    st.session_state.tanggal = st.text_input("Tanggal", st.session_state.tanggal)
-    st.session_state.alamat = st.text_input("Alamat", st.session_state.alamat)
-
-    st.subheader("📝 Edit Teks OCR")
-    st.session_state.ocr_text = st.text_area(
-        "Edit isi teks OCR:",
-        value=st.session_state.ocr_text,
+    st.subheader("✍️ Edit isi teks OCR:")
+    edited_text = st.text_area(
+        "Teks OCR",
+        value=st.session_state["ocr_text"],
         height=250
     )
 
+    # ------------------ FINAL RESULT ------------------
+    st.subheader("📄 Hasil Final")
+
     final_text = f"""
-{st.session_state.judul}
+{judul}
 
-Tanggal : {st.session_state.tanggal}
-Alamat  : {st.session_state.alamat}
+Tanggal : {tanggal.strftime("%d %B %Y")}
+Alamat  : {alamat}
 
-{st.session_state.ocr_text}
-""".strip()
+{edited_text}
+"""
 
-    st.subheader("📄 Hasil Final (Bisa Diedit)")
-    st.session_state.final_text = st.text_area(
-        "Teks Final:",
-        value=final_text,
-        height=300
-    )
+    st.text_area("Teks Final (siap disalin atau download)", final_text, height=300)
 
     st.download_button(
         "⬇️ Download TXT",
-        st.session_state.final_text,
-        file_name="hasil_ocr.txt"
+        data=final_text,
+        file_name="hasil_ocr.txt",
+        mime="text/plain"
     )
