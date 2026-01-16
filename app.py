@@ -2,98 +2,145 @@ import streamlit as st
 from PIL import Image
 import easyocr
 import numpy as np
-from streamlit_image_crop import image_cropper
-from datetime import date
+import io
+import datetime
 
-st.set_page_config(page_title="ScanText Pro - OCR + Editor", layout="centered")
+# =============================
+# Konfigurasi Halaman
+# =============================
+st.set_page_config(
+    page_title="ScanText Pro - OCR + Editor",
+    layout="centered"
+)
 
-# ------------------ DARK MODE ------------------
-dark = st.toggle("🌙 Dark Mode")
+# =============================
+# Dark Mode Toggle
+# =============================
+dark_mode = st.toggle("🌙 Dark Mode")
 
-if dark:
-    st.markdown("""
+if dark_mode:
+    st.markdown(
+        """
         <style>
-        body { background-color: #121212; color: white; }
-        textarea, input { background-color: #1f1f1f !important; color: white !important; }
+        body {
+            background-color: #0e1117;
+            color: white;
+        }
+        textarea, input {
+            background-color: #262730 !important;
+            color: white !important;
+        }
         </style>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
 
-# ------------------ TITLE ------------------
+# =============================
+# Judul
+# =============================
 st.title("📄 ScanText Pro – OCR + Editor")
-st.success("OCR stabil + bisa diedit + kamera + crop + dark mode tersedia")
+st.success("OCR stabil + bisa diedit + mode gelap tersedia")
 
-# ------------------ OCR INIT ------------------
+# =============================
+# Load EasyOCR
+# =============================
 @st.cache_resource
 def load_reader():
-    return easyocr.Reader(['id', 'en'], gpu=False)
+    return easyocr.Reader(['en', 'id'], gpu=False)
 
 reader = load_reader()
 
-# ------------------ IMAGE INPUT ------------------
-st.subheader("📸 Upload / Ambil Gambar")
-img_source = st.radio("Sumber gambar:", ["Upload File", "Kamera"])
+# =============================
+# Upload Gambar / Kamera
+# =============================
+st.subheader("📷 Upload atau Ambil Gambar")
 
+option = st.radio("Pilih sumber gambar:", ["Upload Gambar", "Kamera"])
+
+uploaded_file = None
 image = None
 
-if img_source == "Upload File":
-    uploaded = st.file_uploader("Upload gambar (PNG, JPG, JPEG)", ["png", "jpg", "jpeg"])
-    if uploaded:
-        image = Image.open(uploaded)
+if option == "Upload Gambar":
+    uploaded_file = st.file_uploader(
+        "Upload gambar (PNG, JPG, JPEG)",
+        type=["png", "jpg", "jpeg"]
+    )
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Preview gambar", use_container_width=True)
 
-elif img_source == "Kamera":
-    camera = st.camera_input("Ambil gambar dari kamera")
-    if camera:
-        image = Image.open(camera)
+elif option == "Kamera":
+    camera_image = st.camera_input("Ambil foto langsung")
+    if camera_image:
+        image = Image.open(camera_image)
+        st.image(image, caption="Foto dari kamera", use_container_width=True)
 
-if image:
-    st.image(image, caption="Gambar Asli", use_container_width=True)
+# =============================
+# Proses OCR
+# =============================
+if image is not None:
+    if st.button("🚀 Proses OCR"):
+        with st.spinner("Sedang memproses OCR..."):
+            try:
+                img_np = np.array(image)
+                result = reader.readtext(img_np)
 
-    # ------------------ CROP ------------------
-    st.subheader("✂️ Crop Gambar")
-    cropped = image_cropper(image, realtime_update=True, box_color="blue", aspect_ratio=None)
-    st.image(cropped, caption="Hasil Crop", use_container_width=True)
+                ocr_text = ""
+                for r in result:
+                    ocr_text += r[1] + "\n"
 
-    # ------------------ OCR BUTTON ------------------
-    if st.button("🔍 Proses OCR"):
-        with st.spinner("Memproses OCR..."):
-            img_np = np.array(cropped)
-            result = reader.readtext(img_np)
+                if ocr_text.strip() == "":
+                    st.warning("Tidak ada teks terdeteksi.")
+                else:
+                    st.session_state["ocr_result"] = ocr_text
+                    st.success("OCR berhasil!")
 
-            ocr_text = "\n".join([r[1] for r in result])
-            st.session_state["ocr_text"] = ocr_text
+            except Exception as e:
+                st.error("Terjadi error saat OCR:")
+                st.code(str(e))
 
-# ------------------ EDIT AREA ------------------
-if "ocr_text" in st.session_state:
+# =============================
+# Editor Teks
+# =============================
+if "ocr_result" in st.session_state:
+    st.subheader("✏️ Edit Data Utama")
 
-    st.subheader("📝 Edit Informasi")
+    judul = st.text_input("Judul", value="HASIL OCR")
+    tanggal = st.text_input(
+        "Tanggal",
+        value=datetime.date.today().strftime("%d %B %Y")
+    )
+    alamat = st.text_input("Alamat", value="Isi alamat di sini")
 
-    judul = st.text_input("Judul", "HASIL OCR")
-    tanggal = st.date_input("Tanggal", value=date.today())
-    alamat = st.text_input("Alamat", "Isi alamat di sini")
-
-    st.subheader("✍️ Edit isi teks OCR:")
+    st.subheader("📝 Edit isi teks OCR:")
     edited_text = st.text_area(
-        "Teks OCR",
-        value=st.session_state["ocr_text"],
+        "Edit teks di bawah ini:",
+        st.session_state["ocr_result"],
         height=250
     )
 
-    # ------------------ FINAL RESULT ------------------
+    # =============================
+    # Hasil Final
+    # =============================
     st.subheader("📄 Hasil Final")
 
     final_text = f"""
 {judul}
 
-Tanggal : {tanggal.strftime("%d %B %Y")}
+Tanggal : {tanggal}
 Alamat  : {alamat}
 
 {edited_text}
 """
 
-    st.text_area("Teks Final (siap disalin atau download)", final_text, height=300)
+    st.text_area(
+        "Teks Final (siap disalin atau download):",
+        final_text,
+        height=300
+    )
 
     st.download_button(
-        "⬇️ Download TXT",
+        "⬇️ Download sebagai TXT",
         data=final_text,
         file_name="hasil_ocr.txt",
         mime="text/plain"
