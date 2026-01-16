@@ -37,7 +37,40 @@ if uploaded_file is not None:
                     st.warning("Tidak ada teks terdeteksi.")
                 else:
                     st.success("OCR berhasil!")
-                    st.text_area("Hasil OCR:", text, height=300)
+
+                    # ===============================
+                    # FITUR EDIT DATA
+                    # ===============================
+                    st.subheader("✏️ Edit Data Dokumen")
+
+                    judul = st.text_input("Judul Dokumen", "Judul belum diisi")
+                    tanggal = st.text_input("Tanggal", "Tanggal belum diisi")
+                    alamat = st.text_input("Alamat", "Alamat belum diisi")
+
+                    st.subheader("📄 Hasil OCR (Bisa Diedit)")
+                    edited_text = st.text_area(
+                        "Edit teks hasil OCR di sini:",
+                        text,
+                        height=300
+                    )
+
+                    st.subheader("📑 Hasil Final Dokumen")
+                    final_text = f"""
+JUDUL   : {judul}
+TANGGAL : {tanggal}
+ALAMAT  : {alamat}
+
+------------------------
+{edited_text}
+"""
+                    st.text_area("Output Final", final_text, height=350)
+
+                    st.download_button(
+                        "⬇️ Download sebagai TXT",
+                        final_text,
+                        file_name="hasil_scantext.txt",
+                        mime="text/plain"
+                    )
 
             except Exception as e:
                 st.error("Terjadi error saat OCR:")
