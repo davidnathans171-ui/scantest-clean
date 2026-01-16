@@ -4,15 +4,18 @@ import easyocr
 import numpy as np
 
 # =========================
-# Konfigurasi Halaman
+# KONFIGURASI HALAMAN
 # =========================
-st.set_page_config(page_title="ScanText Pro", layout="centered")
+st.set_page_config(
+    page_title="ScanText Pro - OCR MODE",
+    layout="centered"
+)
 
 st.title("ScanText Pro – OCR MODE")
 st.success("OCR aktif menggunakan EasyOCR (stabil untuk Streamlit Cloud)")
 
 # =========================
-# Load EasyOCR (cache agar tidak reload terus)
+# LOAD OCR READER (CACHE)
 # =========================
 @st.cache_resource
 def load_reader():
@@ -21,10 +24,10 @@ def load_reader():
 reader = load_reader()
 
 # =========================
-# Upload Gambar
+# UPLOAD GAMBAR
 # =========================
 uploaded_file = st.file_uploader(
-    "Upload gambar (PNG, JPG, JPEG)",
+    "📤 Upload gambar (PNG, JPG, JPEG)",
     type=["png", "jpg", "jpeg"]
 )
 
@@ -32,10 +35,7 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption="Preview gambar", use_container_width=True)
 
-    # =========================
-    # Tombol Proses OCR
-    # =========================
-    if st.button("🔍 Proses OCR"):
+    if st.button("🚀 Proses OCR"):
         with st.spinner("Sedang memproses OCR..."):
             try:
                 img_np = np.array(image)
@@ -48,29 +48,29 @@ if uploaded_file is not None:
                 if text.strip() == "":
                     st.warning("Tidak ada teks terdeteksi.")
                 else:
-                    st.success("OCR berhasil!")
+                    st.success("OCR berhasil! Silakan edit teks di bawah.")
 
                     # =========================
-                    # MODE EDIT
+                    # FORM EDIT JUDUL, TANGGAL, ALAMAT
                     # =========================
-                    st.subheader("✏️ Edit Data Dokumen")
+                    st.subheader("✏️ Edit Informasi Struk")
 
-                    judul = st.text_input("Judul Dokumen", "Struk Belanja")
-                    tanggal = st.text_input("Tanggal", "16/01/2026")
-                    alamat = st.text_input("Alamat", "Masukkan alamat di sini")
+                    judul = st.text_input("📝 Judul", "STRUK PEMBELIAN")
+                    tanggal = st.text_input("📅 Tanggal", "16/01/2026")
+                    alamat = st.text_input("📍 Alamat", "Toko Contoh, Jakarta")
 
-                    st.subheader("📝 Edit Teks OCR")
+                    # =========================
+                    # EDIT HASIL OCR
+                    # =========================
                     edited_text = st.text_area(
-                        "Teks OCR (bisa diedit bebas)",
-                        text,
+                        "🖊 Edit teks hasil OCR:",
+                        value=text,
                         height=300
                     )
 
                     # =========================
-                    # HASIL FINAL
+                    # GABUNGKAN HASIL AKHIR
                     # =========================
-                    st.subheader("📄 Hasil Final")
-
                     final_text = f"""
 {judul}
 
@@ -80,12 +80,14 @@ Alamat  : {alamat}
 {edited_text}
 """
 
-                    st.text_area("Teks Final (siap disalin / disimpan)", final_text, height=350)
+                    st.subheader("📄 Hasil Final (Siap disalin / download)")
+                    st.text_area("Teks Final:", final_text, height=300)
 
                     st.download_button(
-                        "⬇️ Download sebagai TXT",
+                        "⬇ Download sebagai TXT",
                         final_text,
-                        file_name="hasil_ocr.txt"
+                        file_name="hasil_ocr.txt",
+                        mime="text/plain"
                     )
 
             except Exception as e:
