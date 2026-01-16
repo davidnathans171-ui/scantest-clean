@@ -4,3 +4,5 @@ easyocr
 numpy
 protobuf==3.20.3
 streamlit-image-crop
+imghdr
+
