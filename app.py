@@ -1,18 +1,18 @@
 import streamlit as st
-from docx import Document
 from PIL import Image
 import numpy as np
 import easyocr
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from docx import Document
 from datetime import datetime
 
-# ================= PAGE CONFIG =================
-st.set_page_config(page_title="ScanText Pro", layout="centered")
+# ================= CONFIG =================
+st.set_page_config(page_title="ScanText Pro Ultimate", layout="centered")
 
 # ================= THEME =================
-theme = st.selectbox(
+theme = st.sidebar.selectbox(
     "🎨 Pilih Tema UI",
     ["Light", "Dark", "Blue", "Green", "Minimalist"]
 )
@@ -23,165 +23,111 @@ def apply_theme(theme):
     elif theme == "Blue":
         bg, text, card = "#0A1F44", "white", "#102A56"
     elif theme == "Green":
-        bg, text, card = "#0F2E1F", "white", "#1B4D3A"
+        bg, text, card = "#0F2F1F", "white", "#1F4F3F"
     elif theme == "Minimalist":
-        bg, text, card = "#FFFFFF", "#111111", "#F2F2F2"
+        bg, text, card = "#FFFFFF", "#333333", "#F4F4F4"
     else:
-        bg, text, card = "#F5F7FA", "#000000", "#FFFFFF"
+        bg, text, card = "white", "black", "#F0F2F6"
 
     st.markdown(f"""
-    <style>
-    .stApp {{
-        background-color: {bg};
-        color: {text};
-    }}
-    textarea, input, .stButton>button {{
-        background-color: {card};
-        color: {text};
-        border-radius: 8px;
-    }}
-    </style>
+        <style>
+        body {{
+            background-color: {bg};
+            color: {text};
+        }}
+        textarea, input, select {{
+            background-color: {card};
+            color: {text};
+        }}
+        </style>
     """, unsafe_allow_html=True)
 
 apply_theme(theme)
 
-# ================= SESSION STATE =================
-if "ocr_text" not in st.session_state:
-    st.session_state.ocr_text = ""
+# ================= SIDEBAR =================
+st.sidebar.title("📜 Riwayat Scan")
 if "history" not in st.session_state:
     st.session_state.history = []
-if "judul" not in st.session_state:
-    st.session_state.judul = "HASIL OCR"
-if "tanggal" not in st.session_state:
-    st.session_state.tanggal = datetime.now().strftime("%d %B %Y")
-if "alamat" not in st.session_state:
-    st.session_state.alamat = ""
-
-# ================= SIDEBAR HISTORY =================
-st.sidebar.title("📚 Riwayat Scan")
-
-if len(st.session_state.history) == 0:
-    st.sidebar.info("Belum ada riwayat scan.")
-else:
-    for i, item in enumerate(reversed(st.session_state.history)):
-        label = f"[{len(st.session_state.history)-i}] {item['time']} - {item['mode']}"
-        if st.sidebar.button(label):
-            st.session_state.ocr_text = item["text"]
-            st.session_state.judul = item["judul"]
-            st.session_state.tanggal = item["tanggal"]
-            st.session_state.alamat = item["alamat"]
-            st.success("Riwayat berhasil dimuat!")
 
 # ================= TITLE =================
-st.title("📄 ScanText Pro")
-st.success("Upload • Kamera • Crop • OCR • Edit • Mode Surat • TXT • PDF • Tema UI • History")
+st.title("📄 ScanText Pro – OCR Ultimate")
+st.success("OCR + Camera + Crop + Edit + PDF + Word + Multi Bahasa + Tema UI")
 
 # ================= MODE =================
-mode = st.selectbox("Pilih Mode Output:", ["Struk", "Surat"])
+mode = st.selectbox("Pilih Mode:", ["Struk", "Surat"])
+
+# ================= OCR LANGUAGE =================
+lang = st.selectbox(
+    "🌐 Bahasa OCR:",
+    {
+        "Indonesia": ["id", "en"],
+        "English": ["en"],
+        "Japanese": ["ja", "en"],
+        "Arabic": ["ar", "en"]
+    }.keys()
+)
+
+lang_map = {
+    "Indonesia": ["id", "en"],
+    "English": ["en"],
+    "Japanese": ["ja", "en"],
+    "Arabic": ["ar", "en"]
+}
 
 # ================= IMAGE INPUT =================
-tab1, tab2 = st.tabs(["📁 Upload", "📷 Kamera"])
+st.subheader("📷 Upload atau Kamera")
+
+tab1, tab2 = st.tabs(["Upload", "Kamera"])
 image = None
 
 with tab1:
-    uploaded = st.file_uploader("Upload gambar", type=["png", "jpg", "jpeg"])
-    if uploaded:
-        image = Image.open(uploaded).convert("RGB")
+    file = st.file_uploader("Upload gambar", type=["png", "jpg", "jpeg"])
+    if file:
+        image = Image.open(file).convert("RGB")
 
 with tab2:
     cam = st.camera_input("Ambil foto")
     if cam:
         image = Image.open(cam).convert("RGB")
 
-# ================= CROP =================
 if image:
-    st.subheader("✂ Crop Gambar")
-    w, h = image.size
-    x1 = st.slider("X awal", 0, w-1, 0)
-    x2 = st.slider("X akhir", 1, w, w)
-    y1 = st.slider("Y awal", 0, h-1, 0)
-    y2 = st.slider("Y akhir", 1, h, h)
+    st.image(image, caption="Preview", use_container_width=True)
 
-    cropped = image.crop((x1, y1, x2, y2))
-    st.image(cropped, caption="Hasil Crop", use_column_width=True)
+    # ================= OCR =================
+    reader = easyocr.Reader(lang_map[lang], gpu=False)
+    result = reader.readtext(np.array(image), detail=0)
+    ocr_text = "\n".join(result)
 
-    if st.button("🔍 Proses OCR"):
-        with st.spinner("Membaca teks..."):
-            reader = easyocr.Reader(["en", "id"], gpu=False)
-            result = reader.readtext(np.array(cropped), detail=0)
-            text = "\n".join(result)
-            st.session_state.ocr_text = text
-            st.success("OCR berhasil!")
+    st.subheader("✏ Edit Hasil OCR")
+    edited_text = st.text_area("Edit teks OCR:", ocr_text, height=250)
 
-# ================= EDIT =================
-if st.session_state.ocr_text:
-    st.subheader("✏ Edit Teks")
-
-    st.session_state.judul = st.text_input("Judul", st.session_state.judul)
-    st.session_state.tanggal = st.text_input("Tanggal", st.session_state.tanggal)
-    st.session_state.alamat = st.text_input("Alamat", st.session_state.alamat)
-
-    edited = st.text_area(
-        "Edit isi teks OCR:",
-        st.session_state.ocr_text,
-        height=250
-    )
-
-    st.session_state.ocr_text = edited
-
-    if mode == "Surat":
-        final_text = f"""
-{st.session_state.judul}
-
-Tanggal : {st.session_state.tanggal}
-Alamat  : {st.session_state.alamat}
-
-Dengan hormat,
-
-{edited}
-
-Hormat kami,
-"""
-    else:
-        final_text = f"""
-{st.session_state.judul}
-
-Tanggal : {st.session_state.tanggal}
-Alamat  : {st.session_state.alamat}
-
-{edited}
-"""
-
+    # ================= MODE OUTPUT =================
     st.subheader("📄 Hasil Final")
-    st.text_area("Teks Final:", final_text, height=300)
+    if mode == "Struk":
+        final_text = f"HASIL OCR STRUK\n\n{edited_text}"
+    else:
+        final_text = f"SURAT RESMI\nTanggal: {datetime.now().strftime('%d %B %Y')}\n\n{edited_text}"
 
-    # ================= SAVE TO HISTORY =================
-    if st.button("💾 Simpan ke Riwayat"):
-        st.session_state.history.append({
-            "time": datetime.now().strftime("%d %b %H:%M"),
-            "mode": mode,
-            "judul": st.session_state.judul,
-            "tanggal": st.session_state.tanggal,
-            "alamat": st.session_state.alamat,
-            "text": edited
-        })
-        st.success("Disimpan ke riwayat!")
+    st.text_area("Teks Final:", final_text, height=250)
 
-    # ================= DOWNLOAD TXT =================
+    # ================= SAVE HISTORY =================
+    st.session_state.history.append(final_text)
+
+    # ================= EXPORT TXT =================
     st.download_button(
         "⬇ Download TXT",
         final_text,
         file_name="hasil_ocr.txt"
     )
 
-    # ================= DOWNLOAD PDF =================
+    # ================= EXPORT PDF =================
     def create_pdf(text):
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=A4)
-        textobject = c.beginText(40, 800)
+        textobj = c.beginText(40, 800)
         for line in text.split("\n"):
-            textobject.textLine(line)
-        c.drawText(textobject)
+            textobj.textLine(line)
+        c.drawText(textobj)
         c.showPage()
         c.save()
         buffer.seek(0)
@@ -194,22 +140,26 @@ Alamat  : {st.session_state.alamat}
         file_name="hasil_ocr.pdf",
         mime="application/pdf"
     )
-    # ================= DOWNLOAD WORD =================
-    def create_word(text):
-        document = Document()
-        for line in text.split("\n"):
-            document.add_paragraph(line)
 
+    # ================= EXPORT WORD =================
+    def create_word(text):
+        doc = Document()
+        for line in text.split("\n"):
+            doc.add_paragraph(line)
         buffer = BytesIO()
-        document.save(buffer)
+        doc.save(buffer)
         buffer.seek(0)
         return buffer
 
-    word_file = create_word(final_text)
-
+    word = create_word(final_text)
     st.download_button(
-        "📑 Download Word (.docx)",
-        word_file,
+        "⬇ Download Word (.docx)",
+        word,
         file_name="hasil_ocr.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
+# ================= SHOW HISTORY =================
+st.sidebar.subheader("Riwayat:")
+for i, h in enumerate(st.session_state.history[::-1][:5]):
+    st.sidebar.text(f"{i+1}. {h[:30]}...")
