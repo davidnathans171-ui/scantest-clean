@@ -1,8 +1,9 @@
-streamlit==1.30.0
-easyocr
+streamlit
 pillow
+easyocr
 numpy
 protobuf==3.20.3
+
 
 
 
