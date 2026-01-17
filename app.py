@@ -73,7 +73,7 @@ elif option == "Kamera":
     camera_image = st.camera_input("Ambil foto langsung")
     if camera_image:
         image = Image.open(camera_image)
-        st.image(image, caption="Foto dari kamera", use_container_width=True)
+        st.image(image, caption="Preview gambar", use_column_width=True)
 
 # =============================
 # Proses OCR
