@@ -3,3 +3,4 @@ pillow
 easyocr
 numpy
 reportlab
+python-docx
