@@ -1,4 +1,5 @@
 import streamlit as st
+from docx import Document
 from PIL import Image
 import numpy as np
 import easyocr
@@ -192,4 +193,23 @@ Alamat  : {st.session_state.alamat}
         pdf,
         file_name="hasil_ocr.pdf",
         mime="application/pdf"
+    )
+    # ================= DOWNLOAD WORD =================
+    def create_word(text):
+        document = Document()
+        for line in text.split("\n"):
+            document.add_paragraph(line)
+
+        buffer = BytesIO()
+        document.save(buffer)
+        buffer.seek(0)
+        return buffer
+
+    word_file = create_word(final_text)
+
+    st.download_button(
+        "📑 Download Word (.docx)",
+        word_file,
+        file_name="hasil_ocr.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
