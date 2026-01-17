@@ -20,15 +20,46 @@ st.success("OCR stabil + bisa diedit + Mode Surat aktif")
 # ====== MODE PILIHAN ======
 mode = st.selectbox("Pilih Mode Output:", ["Struk", "Surat"])
 
-# ====== UPLOAD GAMBAR ======
-uploaded_file = st.file_uploader("Upload gambar (PNG, JPG, JPEG)", type=["png", "jpg", "jpeg"])
+# ====== INPUT GAMBAR: UPLOAD ATAU KAMERA ======
+st.subheader("📷 Ambil dari Kamera atau Upload Gambar")
+
+tab1, tab2 = st.tabs(["📁 Upload File", "📸 Kamera"])
+
+image = None
+
+with tab1:
+    uploaded_file = st.file_uploader(
+        "Upload gambar (PNG, JPG, JPEG)",
+        type=["png", "jpg", "jpeg"]
+    )
+    if uploaded_file:
+        image = Image.open(uploaded_file).convert("RGB")
+
+with tab2:
+    camera_file = st.camera_input("Ambil foto langsung")
+    if camera_file:
+        image = Image.open(camera_file).convert("RGB")
 
 ocr_text = ""
 
-if uploaded_file:
+if image:
     try:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Preview Gambar", use_container_width=True)
+        st.image(image, caption="Preview Gambar", use_column_width=True)
+
+        if st.button("🔍 Proses OCR"):
+            with st.spinner("Memproses OCR..."):
+                img_np = np.array(image)
+                results = reader.readtext(img_np)
+                ocr_text = "\n".join([r[1] for r in results])
+
+                if ocr_text.strip() == "":
+                    st.warning("Tidak ada teks terdeteksi.")
+                else:
+                    st.session_state["ocr_text"] = ocr_text
+                    st.success("OCR berhasil!")
+    except:
+        st.error("Gagal membaca gambar. Pastikan file gambar valid.")
+
 
         if st.button("🔍 Proses OCR"):
             with st.spinner("Memproses OCR..."):
