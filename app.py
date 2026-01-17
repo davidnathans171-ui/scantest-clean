@@ -2,22 +2,22 @@ import streamlit as st
 from PIL import Image
 import easyocr
 import numpy as np
-from io import BytesIO
+from streamlit_cropper import st_cropper
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
+import io
 
 st.set_page_config(page_title="ScanText Pro", layout="centered")
 
-st.title("📄 ScanText Pro – OCR + PDF Export")
-st.success("OCR stabil + teks bisa diedit + export PDF")
+st.title("📄 ScanText Pro – OCR + Editor + Crop")
+st.success("OCR stabil • Bisa diedit • Bisa crop • Bisa export PDF")
 
-# MODE
+# MODE PILIHAN
 mode = st.selectbox("Pilih Mode Output:", ["Struk", "Surat"])
 
-# INPUT GAMBAR
-st.subheader("📷 Ambil dari Kamera atau Upload Gambar")
-tab1, tab2 = st.tabs(["📁 Upload File", "📸 Kamera"])
+st.subheader("📸 Ambil gambar dari Upload atau Kamera")
+
+tab1, tab2 = st.tabs(["📁 Upload Gambar", "📷 Kamera"])
 
 image = None
 
@@ -34,35 +34,41 @@ with tab2:
     if camera_file:
         image = Image.open(camera_file).convert("RGB")
 
-# OCR
+# ================== CROP ==================
 if image:
-    st.image(image, caption="Preview gambar", use_container_width=True)
-
-    if "reader" not in st.session_state:
-        st.session_state.reader = easyocr.Reader(["en", "id"], gpu=False)
-
-    if st.button("🔍 Proses OCR"):
-        with st.spinner("Sedang membaca teks..."):
-            result = st.session_state.reader.readtext(np.array(image), detail=0)
-            ocr_text = "\n".join(result)
-            st.session_state.ocr_text = ocr_text
-
-# EDIT TEXT
-if "ocr_text" in st.session_state:
-    st.subheader("✏️ Edit isi teks OCR")
-    edited_text = st.text_area(
-        "Teks hasil OCR (bisa diedit):",
-        value=st.session_state.ocr_text,
-        height=300
+    st.subheader("✂️ Crop Gambar (Opsional)")
+    cropped_img = st_cropper(
+        image,
+        realtime_update=True,
+        box_color="#00ff00",
+        aspect_ratio=None
     )
 
-    # Metadata
-    st.subheader("📝 Informasi Tambahan")
-    judul = st.text_input("Judul", "HASIL OCR")
-    tanggal = st.text_input("Tanggal", "Isi tanggal di sini")
-    alamat = st.text_input("Alamat", "Isi alamat di sini")
+    st.image(cropped_img, caption="Hasil setelah crop", use_container_width=True)
 
-    final_text = f"""{judul}
+    if st.button("🔍 Proses OCR"):
+        with st.spinner("Sedang memproses OCR..."):
+            reader = easyocr.Reader(['en', 'id'], gpu=False)
+            result = reader.readtext(np.array(cropped_img), detail=0)
+            ocr_text = "\n".join(result)
+            st.session_state["ocr"] = ocr_text
+
+# ================== EDIT TEXT ==================
+if "ocr" in st.session_state:
+    st.subheader("✏️ Edit hasil OCR")
+
+    judul = st.text_input("Judul", "HASIL OCR")
+    tanggal = st.text_input("Tanggal", "")
+    alamat = st.text_input("Alamat", "")
+
+    edited_text = st.text_area(
+        "Edit isi teks OCR:",
+        value=st.session_state["ocr"],
+        height=250
+    )
+
+    final_text = f"""
+{judul}
 
 Tanggal : {tanggal}
 Alamat  : {alamat}
@@ -70,33 +76,26 @@ Alamat  : {alamat}
 {edited_text}
 """
 
-    st.subheader("📄 Hasil Final")
-    st.text_area("Teks Final:", final_text, height=300)
+    st.subheader("📑 Hasil Final")
+    st.text_area("Teks Final:", final_text, height=250)
 
     # DOWNLOAD TXT
     st.download_button(
         "⬇️ Download TXT",
-        data=final_text,
+        final_text,
         file_name="hasil_ocr.txt",
         mime="text/plain"
     )
 
-    # ===== EXPORT PDF =====
+    # ================= PDF EXPORT =================
     def generate_pdf(text):
-        buffer = BytesIO()
+        buffer = io.BytesIO()
         c = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
-
-        x = 2 * cm
-        y = height - 2 * cm
-
+        textobject = c.beginText(40, 800)
         for line in text.split("\n"):
-            if y < 2 * cm:
-                c.showPage()
-                y = height - 2 * cm
-            c.drawString(x, y, line)
-            y -= 14
-
+            textobject.textLine(line)
+        c.drawText(textobject)
+        c.showPage()
         c.save()
         buffer.seek(0)
         return buffer
@@ -105,7 +104,7 @@ Alamat  : {alamat}
 
     st.download_button(
         "📄 Download sebagai PDF",
-        data=pdf_file,
+        pdf_file,
         file_name="hasil_ocr.pdf",
         mime="application/pdf"
     )
