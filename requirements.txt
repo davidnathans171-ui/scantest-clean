@@ -1,6 +1,7 @@
 streamlit
 pillow
-easyocr
 numpy
-reportlab
+easyocr
 python-docx
+reportlab
+protobuf==3.20.3
