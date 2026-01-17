@@ -1,26 +1,35 @@
 import streamlit as st
 from PIL import Image
-import easyocr
 import numpy as np
-from datetime import date
+import easyocr
 
-st.set_page_config(page_title="ScanText Pro", layout="centered")
+# ================== KONFIGURASI AWAL ==================
+st.set_page_config(
+    page_title="ScanText Pro",
+    page_icon="📄",
+    layout="centered"
+)
 
-# ====== CACHE OCR ======
+st.title("📄 ScanText Pro – OCR + Editor + Mode Surat")
+st.success("OCR stabil • Bisa diedit • Kamera & Upload aktif • Mode Struk & Surat")
+
+# ================== LOAD OCR ==================
 @st.cache_resource
 def load_reader():
     return easyocr.Reader(['id', 'en'], gpu=False)
 
 reader = load_reader()
 
-# ====== HEADER ======
-st.title("📄 ScanText Pro – OCR + Mode Surat")
-st.success("OCR stabil + bisa diedit + Mode Surat aktif")
+# ================== SESSION STATE ==================
+if "ocr_text" not in st.session_state:
+    st.session_state.ocr_text = ""
+if "processed" not in st.session_state:
+    st.session_state.processed = False
 
-# ====== MODE PILIHAN ======
+# ================== PILIH MODE ==================
 mode = st.selectbox("Pilih Mode Output:", ["Struk", "Surat"])
 
-# ====== INPUT GAMBAR: UPLOAD ATAU KAMERA ======
+# ================== INPUT GAMBAR ==================
 st.subheader("📷 Ambil dari Kamera atau Upload Gambar")
 
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Kamera"])
@@ -32,114 +41,89 @@ with tab1:
         "Upload gambar (PNG, JPG, JPEG)",
         type=["png", "jpg", "jpeg"]
     )
-    if uploaded_file:
-        image = Image.open(uploaded_file).convert("RGB")
+    if uploaded_file is not None:
+        try:
+            image = Image.open(uploaded_file).convert("RGB")
+        except:
+            st.error("Gambar tidak valid.")
 
 with tab2:
     camera_file = st.camera_input("Ambil foto langsung")
-    if camera_file:
-        image = Image.open(camera_file).convert("RGB")
+    if camera_file is not None:
+        try:
+            image = Image.open(camera_file).convert("RGB")
+        except:
+            st.error("Gambar kamera tidak valid.")
 
-ocr_text = ""
+# ================== PREVIEW GAMBAR ==================
+if image is not None:
+    st.image(image, caption="Preview gambar", use_column_width=True)
 
-if image:
-    try:
-        st.image(image, caption="Preview Gambar", use_column_width=True)
-
-        if st.button("🔍 Proses OCR"):
-            with st.spinner("Memproses OCR..."):
+    if st.button("🔍 Proses OCR"):
+        with st.spinner("Sedang memproses OCR..."):
+            try:
                 img_np = np.array(image)
-                results = reader.readtext(img_np)
-                ocr_text = "\n".join([r[1] for r in results])
+                result = reader.readtext(img_np)
+                text = "\n".join([r[1] for r in result])
 
-                if ocr_text.strip() == "":
-                    st.warning("Tidak ada teks terdeteksi.")
-                else:
-                    st.session_state["ocr_text"] = ocr_text
-                    st.success("OCR berhasil!")
-    except:
-        st.error("Gagal membaca gambar. Pastikan file gambar valid.")
+                st.session_state.ocr_text = text
+                st.session_state.processed = True
+                st.success("OCR berhasil!")
 
+            except Exception as e:
+                st.error("Terjadi error saat OCR:")
+                st.code(str(e))
 
-        if st.button("🔍 Proses OCR"):
-            with st.spinner("Memproses OCR..."):
-                img_np = np.array(image)
-                results = reader.readtext(img_np)
+# ================== EDITOR ==================
+if st.session_state.processed:
 
-                ocr_text = "\n".join([r[1] for r in results])
+    st.subheader("✏️ Edit Informasi Utama")
 
-                if ocr_text.strip() == "":
-                    st.warning("Tidak ada teks terdeteksi.")
-                else:
-                    st.session_state["ocr_text"] = ocr_text
-                    st.success("OCR berhasil!")
-    except:
-        st.error("Gagal membaca gambar. Pastikan file gambar valid.")
+    judul = st.text_input("Judul:", value="HASIL OCR")
+    tanggal = st.text_input("Tanggal:", value="")
+    alamat = st.text_input("Alamat:", value="")
 
-# ====== SIMPAN OCR AGAR TIDAK HILANG ======
-if "ocr_text" not in st.session_state:
-    st.session_state["ocr_text"] = ""
+    st.subheader("📝 Edit isi teks OCR:")
+    edited_text = st.text_area(
+        "Edit teks OCR di sini:",
+        value=st.session_state.ocr_text,
+        height=250
+    )
 
-# ====== EDITOR OCR ======
-st.subheader("✏️ Edit Isi Teks OCR")
-edited_text = st.text_area(
-    "Edit teks OCR di sini:",
-    value=st.session_state["ocr_text"],
-    height=200
-)
-
-# ====== MODE STRUK ======
-if mode == "Struk":
-    st.subheader("🧾 Mode Struk")
-
-    judul = st.text_input("Judul", "HASIL OCR")
-    tanggal = st.text_input("Tanggal", date.today().strftime("%d %B %Y"))
-    alamat = st.text_input("Alamat", "Isi alamat di sini")
-
-    final_text = f"""
-{judul}
+    # ================== FORMAT OUTPUT ==================
+    if mode == "Struk":
+        final_text = f"""{judul}
 
 Tanggal : {tanggal}
 Alamat  : {alamat}
 
 {edited_text}
 """
+    else:  # MODE SURAT
+        final_text = f"""Perihal : {judul}
 
-# ====== MODE SURAT ======
-else:
-    st.subheader("✉️ Mode Surat")
-
-    judul = st.text_input("Judul Surat", "SURAT KETERANGAN")
-    tanggal = st.text_input("Tanggal", date.today().strftime("%d %B %Y"))
-    tujuan = st.text_input("Tujuan Surat", "Bapak/Ibu ...")
-    penutup = st.text_input("Penutup", "Hormat kami,")
-    nama = st.text_input("Nama Pengirim", "Nama Anda")
-
-    final_text = f"""
-{judul}
-
-Tanggal: {tanggal}
-
-Kepada Yth:
-{tujuan}
-Di Tempat
+Tanggal : {tanggal}
+Alamat Tujuan :
+{alamat}
 
 Dengan hormat,
 
 {edited_text}
 
-{penutup}
-
-{nama}
+Demikian surat ini disampaikan.
+Terima kasih.
 """
 
-# ====== HASIL AKHIR ======
-st.subheader("📄 Hasil Final")
-st.text_area("Teks Final (siap disalin / download)", final_text, height=300)
+    # ================== HASIL FINAL ==================
+    st.subheader("📄 Hasil Final")
+    st.text_area(
+        "Teks Final (siap disalin atau diunduh):",
+        final_text,
+        height=300
+    )
 
-st.download_button(
-    "⬇️ Download sebagai TXT",
-    data=final_text,
-    file_name="hasil_ocr.txt",
-    mime="text/plain"
-)
+    st.download_button(
+        "⬇️ Download sebagai TXT",
+        final_text,
+        file_name="hasil_ocr.txt"
+    )
