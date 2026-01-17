@@ -8,6 +8,27 @@ from reportlab.pdfgen import canvas
 import io
 
 st.set_page_config(page_title="ScanText Pro", layout="centered")
+# ===== DARK MODE TOGGLE =====
+dark_mode = st.toggle("🌙 Dark Mode")
+
+if dark_mode:
+    st.markdown("""
+        <style>
+        body {
+            background-color: #0E1117;
+            color: white;
+        }
+        .stTextInput input, .stTextArea textarea {
+            background-color: #262730;
+            color: white;
+        }
+        .stSelectbox, .stButton>button {
+            background-color: #262730;
+            color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 
 st.title("📄 ScanText Pro – OCR + Editor + Crop")
 st.success("OCR stabil • Bisa diedit • Bisa crop • Bisa export PDF")
