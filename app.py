@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 import numpy as np
 import easyocr
@@ -396,7 +397,41 @@ if st.session_state.final_text:
         file_name="hasil_ocr.pdf",
         mime="application/pdf"
     )
+# ================= COPY TO CLIPBOARD =================
+if st.session_state.final_text:
+    st.subheader("📋 Salin Teks")
 
+    copy_text = st.session_state.final_text.replace("`", "").replace("$", "")
+
+    components.html(
+        f"""
+        <textarea id="copyText" style="position:absolute; left:-1000px;">{copy_text}</textarea>
+
+        <button onclick="copyToClipboard()" style="
+            width:100%;
+            padding:12px;
+            font-size:16px;
+            border-radius:8px;
+            background-color:#4CAF50;
+            color:white;
+            border:none;
+            cursor:pointer;
+        ">
+        📋 Salin Teks ke Clipboard
+        </button>
+
+        <script>
+        function copyToClipboard() {{
+            var text = document.getElementById("copyText");
+            text.select();
+            text.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Teks berhasil disalin ke clipboard!");
+        }}
+        </script>
+        """,
+        height=90
+    )
 
 # ===================== EXPORT WORD =====================
 def create_word(text):
