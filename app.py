@@ -11,6 +11,22 @@ from io import BytesIO
 from datetime import datetime
 import re
 
+from datetime import datetime
+
+def save_to_history(mode, ocr_text, final_text, summary):
+    if "scan_history" not in st.session_state:
+        st.session_state.scan_history = []
+
+    data = {
+        "time": datetime.now().strftime("%d-%m-%Y %H:%M"),
+        "mode": mode,
+        "text": ocr_text,
+        "final_text": final_text,
+        "summary": summary
+    }
+
+    st.session_state.scan_history.append(data)
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from docx import Document
@@ -538,6 +554,8 @@ if st.session_state.final_text:
             summary=st.session_state.summary_data if mode == "Struk" else {}
         )
         st.success("Data berhasil disimpan ke riwayat!")
+        st.experimental_rerun()
+
 # ================================
 # PART 6 – EXPORT, CLIPBOARD, GRAFIK & UTILITAS
 # ================================
