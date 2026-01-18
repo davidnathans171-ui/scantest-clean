@@ -110,10 +110,44 @@ section[data-testid="stSidebar"] {
 """, unsafe_allow_html=True)
 
 # ================= SIDEBAR: RIWAYAT + KELOLA =================
-st.sidebar.markdown("📂 **Riwayat Scan**")
+st.sidebar.markdown("📁 Riwayat Scan")
+
+# Pastikan session_state ada
+if "scan_history" not in st.session_state:
+    st.session_state.scan_history = []
 
 if len(st.session_state.scan_history) == 0:
     st.sidebar.info("Belum ada riwayat.")
+else:
+    # 🔥 Hapus semua riwayat
+    if st.sidebar.button("🔥 Hapus Semua Riwayat"):
+        st.session_state.scan_history.clear()
+        st.sidebar.success("Semua riwayat berhasil dihapus!")
+        st.experimental_rerun()
+
+    st.sidebar.markdown("---")
+
+    # Tampilkan satu per satu
+    for i, item in enumerate(reversed(st.session_state.scan_history)):
+        col1, col2 = st.sidebar.columns([5, 1])
+
+        with col1:
+            if st.button(f"📄 {item['time']} | {item['mode']}", key=f"load_{i}"):
+                st.session_state.ocr_text = item["text"]
+                st.session_state.final_text = item["final_text"]
+                st.session_state.judul = item.get("judul", "")
+                st.session_state.tanggal = item.get("tanggal", "")
+                st.session_state.alamat = item.get("alamat", "")
+                st.session_state.summary_data = item.get("summary", {})
+                st.success("Riwayat dimuat kembali!")
+
+        with col2:
+            if st.button("❌", key=f"delete_{i}"):
+                real_index = len(st.session_state.scan_history) - 1 - i
+                st.session_state.scan_history.pop(real_index)
+                st.sidebar.success("Satu riwayat berhasil dihapus!")
+                st.experimental_rerun()
+
 else:
     # Tombol hapus semua
     if st.sidebar.button("🔥 Hapus Semua Riwayat"):
