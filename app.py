@@ -109,13 +109,42 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ================= SIDEBAR: RIWAYAT =================
+# ================= SIDEBAR: RIWAYAT + KELOLA =================
 st.sidebar.markdown("📂 **Riwayat Scan**")
+
 if len(st.session_state.scan_history) == 0:
     st.sidebar.info("Belum ada riwayat.")
 else:
+    # Tombol hapus semua
+    if st.sidebar.button("🔥 Hapus Semua Riwayat"):
+        st.session_state.scan_history.clear()
+        st.success("Semua riwayat berhasil dihapus!")
+        st.experimental_rerun()
+
+    st.sidebar.markdown("---")
+
+    # Daftar riwayat satu per satu
     for i, item in enumerate(reversed(st.session_state.scan_history)):
-        st.sidebar.write(f"{i+1}. {item['time']} | {item['mode']}")
+        col1, col2 = st.sidebar.columns([4, 1])
+
+        with col1:
+            if st.button(f"📄 {item['time']} | {item['mode']}", key=f"load_{i}"):
+                st.session_state.ocr_text = item["text"]
+                st.session_state.final_text = item["final_text"]
+                st.session_state.judul = item["judul"]
+                st.session_state.tanggal = item["tanggal"]
+                st.session_state.alamat = item["alamat"]
+                st.session_state.summary_data = item.get("summary", {})
+                st.success("Riwayat berhasil dimuat kembali!")
+
+        with col2:
+            if st.button("❌", key=f"del_{i}"):
+                # karena kita pakai reversed, index aslinya:
+                real_index = len(st.session_state.scan_history) - 1 - i
+                st.session_state.scan_history.pop(real_index)
+                st.success("Satu riwayat berhasil dihapus!")
+                st.experimental_rerun()
+
 
 # ================= HEADER =================
 st.title("📄 ScanText Pro – Ultimate Final")
