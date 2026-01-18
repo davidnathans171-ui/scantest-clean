@@ -1,4 +1,5 @@
 import streamlit as st
+from openpyxl import Workbook
 from PIL import Image
 import numpy as np
 import easyocr
@@ -256,6 +257,13 @@ if st.session_state.ocr_text:
     # ======================================================
     if mode == "Struk":
         nama_toko, tanggal_auto, telepon, total = smart_extract(edited)
+            summary_data = {
+        "nama_toko": nama_toko,
+        "tanggal": tanggal_auto,
+        "telepon": telepon,
+        "total": total
+    }
+
 
         st.subheader("📊 Ringkasan Otomatis (Smart Extract)")
         col1, col2 = st.columns(2)
@@ -355,4 +363,35 @@ Alamat  : {st.session_state.alamat}
         word,
         file_name="hasil_ocr.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    def create_excel(summary, full_text):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "OCR Result"
+
+    # Header
+    ws.append(["Field", "Value"])
+
+    # Isi data smart extract
+    ws.append(["Nama Toko", summary.get("nama_toko", "")])
+    ws.append(["Tanggal", summary.get("tanggal", "")])
+    ws.append(["Telepon", summary.get("telepon", "")])
+    ws.append(["Total Harga", summary.get("total", "")])
+
+    ws.append([])
+    ws.append(["Teks Lengkap OCR", full_text])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# ================= EXPORT EXCEL =================
+if mode == "Struk":
+    excel_file = create_excel(summary_data, final_text)
+    st.download_button(
+        "📊 Download Excel (.xlsx)",
+        excel_file,
+        file_name="hasil_ocr.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
