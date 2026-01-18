@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from PIL import Image
 import numpy as np
 import easyocr
@@ -570,3 +571,76 @@ else:
             st.session_state.alamat = item["alamat"]
             st.session_state.summary_data = item.get("summary", {})
             st.success("Riwayat berhasil dimuat kembali!")
+            # ===================== GRAFIK PENGELUARAN =====================
+st.markdown("---")
+st.subheader("📊 Grafik Pengeluaran (Mode Struk)")
+
+# Ambil semua data struk dari riwayat
+expense_data = []
+
+for item in st.session_state.scan_history:
+    if item["mode"] == "Struk":
+        summary = item.get("summary", {})
+        tanggal = summary.get("tanggal", "")
+        total = summary.get("total", "")
+
+        # Bersihkan Rupiah → angka
+        if total:
+            total_clean = re.sub(r"[^\d]", "", total)
+            if total_clean.isdigit():
+                total_value = int(total_clean)
+            else:
+                continue
+        else:
+            continue
+
+        # Simpan
+        expense_data.append({
+            "tanggal": tanggal,
+            "total": total_value
+        })
+
+if len(expense_data) == 0:
+    st.info("Belum ada data struk untuk ditampilkan di grafik.")
+else:
+    df = pd.DataFrame(expense_data)
+
+    # Convert tanggal → datetime
+    def parse_date(x):
+        try:
+            return pd.to_datetime(x, dayfirst=True)
+        except:
+            return None
+
+    df["tanggal"] = df["tanggal"].apply(parse_date)
+    df = df.dropna()
+
+    if df.empty:
+        st.warning("Format tanggal belum konsisten, tidak bisa dibuat grafik.")
+    else:
+        # Pilihan grafik
+        chart_mode = st.radio(
+            "Pilih Tampilan Grafik:",
+            ["Harian", "Bulanan"],
+            index=0  # Default Harian sesuai pilihan kamu
+        )
+
+        if chart_mode == "Harian":
+            df_group = df.groupby(df["tanggal"].dt.date)["total"].sum().reset_index()
+            df_group.columns = ["Tanggal", "Total Pengeluaran"]
+        else:
+            df_group = df.groupby(df["tanggal"].dt.to_period("M"))["total"].sum().reset_index()
+            df_group["Tanggal"] = df_group["tanggal"].astype(str)
+            df_group = df_group.rename(columns={"total": "Total Pengeluaran"})
+            df_group = df_group[["Tanggal", "Total Pengeluaran"]]
+
+        st.markdown("### 📊 Grafik Batang Pengeluaran")
+        st.bar_chart(df_group.set_index("Tanggal"))
+
+        # Tabel ringkasan
+        st.markdown("### 📋 Ringkasan Data")
+        df_group["Total Pengeluaran (Rp)"] = df_group["Total Pengeluaran"].apply(
+            lambda x: f"Rp {x:,}".replace(",", ".")
+        )
+        st.dataframe(df_group)
+
