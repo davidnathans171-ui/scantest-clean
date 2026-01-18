@@ -9,7 +9,73 @@ from docx import Document
 from datetime import datetime
 
 # ================= CONFIG =================
-st.set_page_config(page_title="ScanText Pro Ultimate", layout="centered")
+st.set_page_config(
+    page_title="ScanText Pro",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ===== MOBILE FRIENDLY UI =====
+st.markdown("""
+<style>
+/* Global font */
+html, body, [class*="css"]  {
+    font-size: 16px;
+}
+
+/* Container padding kecil supaya pas HP */
+.main .block-container {
+    padding-top: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 1rem;
+}
+
+/* Input lebih tinggi */
+input, textarea {
+    font-size: 16px !important;
+}
+
+/* Button full width */
+.stButton button {
+    width: 100%;
+    height: 45px;
+    font-size: 16px;
+    border-radius: 10px;
+}
+
+/* Selectbox full width */
+.stSelectbox > div {
+    width: 100%;
+}
+
+/* Textarea OCR besar */
+textarea {
+    min-height: 200px !important;
+}
+
+/* Sidebar mobile */
+section[data-testid="stSidebar"] {
+    min-width: 260px !important;
+}
+
+/* Upload box */
+div[data-testid="stFileUploader"] {
+    padding: 10px;
+    border-radius: 10px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 18px; }
+    .stButton button { font-size: 15px; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 # ================= THEME =================
 theme = st.sidebar.selectbox(
