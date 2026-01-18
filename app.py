@@ -109,17 +109,15 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ================= SIDEBAR: RIWAYAT + KELOLA =================
-st.sidebar.markdown("📁 Riwayat Scan")
+st.sidebar.markdown("📜 Riwayat Scan")
 
-# Pastikan session_state ada
 if "scan_history" not in st.session_state:
     st.session_state.scan_history = []
 
 if len(st.session_state.scan_history) == 0:
     st.sidebar.info("Belum ada riwayat.")
 else:
-    # 🔥 Hapus semua riwayat
+    # 🔥 Hapus semua
     if st.sidebar.button("🔥 Hapus Semua Riwayat"):
         st.session_state.scan_history.clear()
         st.sidebar.success("Semua riwayat berhasil dihapus!")
@@ -127,9 +125,9 @@ else:
 
     st.sidebar.markdown("---")
 
-    # Tampilkan satu per satu
+    # Daftar riwayat
     for i, item in enumerate(reversed(st.session_state.scan_history)):
-        col1, col2 = st.sidebar.columns([5, 1])
+        col1, col2 = st.sidebar.columns([4, 1])
 
         with col1:
             if st.button(f"📄 {item['time']} | {item['mode']}", key=f"load_{i}"):
@@ -148,6 +146,7 @@ else:
                 st.sidebar.success("Satu riwayat berhasil dihapus!")
                 st.experimental_rerun()
 
+    
 else:
     # Tombol hapus semua
     if st.sidebar.button("🔥 Hapus Semua Riwayat"):
