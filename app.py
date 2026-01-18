@@ -554,7 +554,7 @@ if st.session_state.final_text:
             summary=st.session_state.summary_data if mode == "Struk" else {}
         )
         st.success("Data berhasil disimpan ke riwayat!")
-        st.experimental_rerun()
+        st.rerun()
 
 # ================================
 # PART 6 – EXPORT, CLIPBOARD, GRAFIK & UTILITAS
