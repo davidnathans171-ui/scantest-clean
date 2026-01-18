@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image
 import numpy as np
 import easyocr
@@ -10,29 +9,32 @@ from docx import Document
 from openpyxl import Workbook
 from datetime import datetime
 import re
+import base64
+import streamlit.components.v1 as components
 
-# ===================== PAGE CONFIG =====================
+# ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="ScanText Pro Ultimate",
+    page_icon="📄",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ===================== SESSION STATE INIT =====================
-if "history" not in st.session_state:
-    st.session_state.history = []
-
+# ================= SESSION STATE =================
 if "ocr_text" not in st.session_state:
     st.session_state.ocr_text = ""
 
 if "final_text" not in st.session_state:
     st.session_state.final_text = ""
 
+if "scan_history" not in st.session_state:
+    st.session_state.scan_history = []
+
 if "summary_data" not in st.session_state:
     st.session_state.summary_data = {}
 
-# ===================== THEME SELECTOR =====================
-st.sidebar.title("🎨 Pilih Tema UI")
+# ================= THEME UI =================
+st.sidebar.markdown("🎨 **Pilih Tema UI**")
 theme = st.sidebar.selectbox(
     "Tema:",
     ["Light", "Dark", "Blue", "Green", "Minimalist"]
@@ -40,7 +42,7 @@ theme = st.sidebar.selectbox(
 
 def apply_theme(theme):
     if theme == "Dark":
-        bg = "#0E1117"
+        bg = "#0e1117"
         text = "white"
         card = "#262730"
     elif theme == "Blue":
@@ -48,17 +50,17 @@ def apply_theme(theme):
         text = "white"
         card = "#102A56"
     elif theme == "Green":
-        bg = "#0F2F1F"
+        bg = "#0B3D2E"
         text = "white"
-        card = "#1E4D3A"
+        card = "#145A32"
     elif theme == "Minimalist":
-        bg = "#FFFFFF"
+        bg = "#F5F5F5"
         text = "#111"
-        card = "#F2F2F2"
-    else:
+        card = "#FFFFFF"
+    else:  # Light
         bg = "#FFFFFF"
         text = "#000"
-        card = "#F5F5F5"
+        card = "#F0F2F6"
 
     st.markdown(f"""
     <style>
@@ -71,65 +73,106 @@ def apply_theme(theme):
         color: {text};
     }}
     .block-container {{
-        padding: 1rem;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
     }}
-    .stTextArea textarea {{
-        min-height: 220px;
+    .card {{
         background-color: {card};
-        color: {text};
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 10px;
     }}
-    .stTextInput input {{
-        background-color: {card};
-        color: {text};
+    textarea {{
+        min-height: 200px !important;
+        font-size: 15px !important;
     }}
-    .stSelectbox div {{
-        background-color: {card};
-        color: {text};
-    }}
-    .stButton button {{
-        width: 100%;
-        font-size: 16px;
-    }}
-
-    /* MOBILE FRIENDLY */
-    @media (max-width: 768px) {{
-        h1 {{ font-size: 26px; }}
-        h2 {{ font-size: 22px; }}
-        h3 {{ font-size: 18px; }}
-        .stButton button {{ font-size: 15px; }}
+    button {{
+        border-radius: 8px !important;
+        padding: 10px 14px !important;
+        font-size: 14px !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
 apply_theme(theme)
 
-# ===================== SIDEBAR HISTORY =====================
-st.sidebar.markdown("## 🧾 Riwayat Scan")
-if st.session_state.history:
-    for i, item in enumerate(st.session_state.history[::-1]):
-        st.sidebar.write(f"{len(st.session_state.history)-i}. {item}")
-else:
-    st.sidebar.info("Belum ada riwayat.")
-
-# ===================== HEADER =====================
-st.title("📄 ScanText Pro – OCR Ultimate")
-st.success("OCR + Camera + Crop + Edit + PDF + Word + Excel + Multi Bahasa + Tema UI")
-
-# ===================== MODE SELECT =====================
-mode = st.selectbox("Pilih Mode:", ["Struk", "Surat"])
-
-# ===================== OCR LANGUAGE =====================
-lang_map = {
-    "Indonesia": ["id"],
-    "Inggris": ["en"],
-    "Jepang": ["ja"],
-    "Arab": ["ar"]
+# ================= MOBILE FRIENDLY CSS =================
+st.markdown("""
+<style>
+/* Global */
+html, body {
+    font-size: 16px;
 }
-ocr_lang = st.selectbox("🌍 Bahasa OCR:", list(lang_map.keys()))
 
-# ===================== IMAGE INPUT =====================
+/* Sidebar width mobile */
+section[data-testid="stSidebar"] {
+    min-width: 250px !important;
+}
+
+/* Upload box */
+div[data-testid="stFileUploader"] {
+    padding: 12px;
+    border-radius: 10px;
+}
+
+/* Button mobile friendly */
+.stButton>button {
+    width: 100%;
+    font-size: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    h1 { font-size: 26px; }
+    h2 { font-size: 22px; }
+    h3 { font-size: 18px; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ================= SIDEBAR: RIWAYAT SCAN =================
+st.sidebar.markdown("📂 **Riwayat Scan**")
+
+if len(st.session_state.scan_history) == 0:
+    st.sidebar.info("Belum ada riwayat.")
+else:
+    for i, item in enumerate(st.session_state.scan_history):
+        st.sidebar.write(f"{i+1}. {item[:40]}...")
+
+# ================= HEADER =================
+st.title("📄 ScanText Pro – OCR Ultimate")
+st.success(
+    "OCR + Kamera + Crop + Edit + PDF + Word + Excel + Multi Bahasa + Tema UI + Smart Extract"
+)
+
+# ================= MODE PILIHAN =================
+mode = st.selectbox(
+    "📌 Pilih Mode:",
+    ["Struk", "Surat"]
+)
+
+# ================= BAHASA OCR =================
+ocr_language = st.selectbox(
+    "🌍 Bahasa OCR:",
+    ["Indonesia", "English", "Japanese", "Arabic"]
+)
+
+# Mapping bahasa ke EasyOCR
+lang_map = {
+    "Indonesia": ["id", "en"],
+    "English": ["en"],
+    "Japanese": ["ja", "en"],
+    "Arabic": ["ar", "en"]
+}
+
+selected_lang = lang_map[ocr_language]
+
+# ================= TEMPAT KONTEN LANJUTAN =================
+st.markdown("---")
 st.subheader("📷 Upload atau Kamera")
-tab1, tab2 = st.tabs(["📂 Upload", "📸 Kamera"])
+st.info("Part berikutnya akan berisi Upload, Kamera, Crop, dan OCR.")
+# ================= UPLOAD & KAMERA =================
+tab1, tab2 = st.tabs(["📁 Upload Gambar", "📷 Kamera"])
 
 image = None
 
@@ -146,68 +189,83 @@ with tab2:
     if camera_file:
         image = Image.open(camera_file).convert("RGB")
 
+# ================= PREVIEW & CROP =================
 if image:
-    st.image(image, caption="Preview Gambar", use_container_width=True)
-    # ===================== CROP IMAGE =====================
-if image:
-    st.subheader("✂ Crop Gambar (Opsional)")
+    st.markdown("### 🖼 Preview Gambar Asli")
+    st.image(image, use_container_width=True)
+
+    st.markdown("### ✂️ Crop Gambar (Opsional)")
+    st.caption("Atur area yang ingin di-OCR")
+
     width, height = image.size
 
-    col_crop1, col_crop2 = st.columns(2)
-    with col_crop1:
-        x1 = st.slider("X Awal", 0, width, 0)
-        x2 = st.slider("X Akhir", 0, width, width)
-    with col_crop2:
-        y1 = st.slider("Y Awal", 0, height, 0)
-        y2 = st.slider("Y Akhir", 0, height, height)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        left = st.number_input("Left", 0, width, 0)
+    with col2:
+        top = st.number_input("Top", 0, height, 0)
+    with col3:
+        right = st.number_input("Right", 0, width, width)
+    with col4:
+        bottom = st.number_input("Bottom", 0, height, height)
 
-    # Pastikan tidak error posisi
-    if x2 <= x1:
-        x2 = x1 + 1
-    if y2 <= y1:
-        y2 = y1 + 1
+    cropped_image = image.crop((left, top, right, bottom))
 
-    cropped_image = image.crop((x1, y1, x2, y2))
+    st.markdown("### 🔍 Hasil Crop")
+    st.image(cropped_image, use_container_width=True)
 
-    st.image(cropped_image, caption="Hasil Crop", use_container_width=True)
+    st.session_state["current_image"] = cropped_image
+else:
+    st.info("Silakan upload gambar atau ambil dari kamera terlebih dahulu.")
+# ================= OCR PROCESS =================
+if "current_image" in st.session_state:
 
-    # ===================== OCR PROCESS =====================
-    st.subheader("🔍 Proses OCR")
+    st.markdown("### 🔍 Proses OCR")
 
-    if st.button("🚀 Proses OCR Sekarang"):
+    if st.button("🚀 Jalankan OCR"):
         with st.spinner("Sedang membaca teks dari gambar..."):
             try:
-                reader = easyocr.Reader(lang_map[ocr_lang], gpu=False)
-                result = reader.readtext(np.array(cropped_image), detail=0)
+                reader = easyocr.Reader(selected_lang, gpu=False)
+                result = reader.readtext(
+                    np.array(st.session_state["current_image"]),
+                    detail=0
+                )
 
-                extracted_text = "\n".join(result)
+                text_result = "\n".join(result)
 
-                if extracted_text.strip() == "":
+                if text_result.strip() == "":
                     st.warning("Tidak ada teks yang terdeteksi.")
                 else:
-                    st.session_state.ocr_text = extracted_text
+                    st.session_state.ocr_text = text_result
                     st.success("OCR berhasil dijalankan!")
 
             except Exception as e:
                 st.error("Terjadi kesalahan saat OCR:")
                 st.code(str(e))
 
-# ===================== TAMPILKAN HASIL OCR =====================
+
+# ================= EDIT TEKS OCR =================
 if st.session_state.ocr_text:
-    st.subheader("📄 Hasil OCR (Bisa Diedit)")
-    st.session_state.ocr_text = st.text_area(
-        "Edit teks hasil OCR:",
-        st.session_state.ocr_text,
+
+    st.markdown("### ✏️ Edit Teks Hasil OCR")
+
+    edited_text = st.text_area(
+        "Kamu bisa mengedit hasil OCR di sini:",
+        value=st.session_state.ocr_text,
         height=250
     )
-# ===================== FORM DATA DOKUMEN =====================
+
+    st.session_state.ocr_text = edited_text
+
+
+# ================= FORM JUDUL, TANGGAL, ALAMAT =================
 if st.session_state.ocr_text:
 
-    st.subheader("📝 Data Dokumen")
+    st.markdown("### 📝 Data Dokumen")
 
-    col_form1, col_form2 = st.columns(2)
+    col_a, col_b = st.columns(2)
 
-    with col_form1:
+    with col_a:
         judul = st.text_input(
             "Judul Dokumen",
             value=st.session_state.get("judul", "HASIL OCR")
@@ -218,40 +276,45 @@ if st.session_state.ocr_text:
             value=st.session_state.get("tanggal", datetime.now().strftime("%d %B %Y"))
         )
 
-    with col_form2:
+    with col_b:
         alamat = st.text_input(
-            "Alamat (opsional)",
+            "Alamat (Opsional)",
             value=st.session_state.get("alamat", "")
         )
 
-    # Simpan ke session
     st.session_state.judul = judul
     st.session_state.tanggal = tanggal
     st.session_state.alamat = alamat
 
-    # ===================== MODE OUTPUT =====================
-    st.subheader("⚙ Mode Output")
 
-    if mode == "Surat":
-        st.info("Mode Surat aktif → Format surat formal.")
+# ================= MODE STRUK / SURAT =================
+if st.session_state.ocr_text:
+
+    st.markdown("### ⚙️ Mode Output")
+
+    if mode == "Struk":
+        st.info("Mode **Struk** aktif → Smart Extract akan digunakan.")
     else:
-        st.info("Mode Struk aktif → Smart Extract akan dijalankan.")
+        st.info("Mode **Surat** aktif → Format dokumen surat formal.")
 
-    # ===================== HASIL AKHIR TEKS =====================
-    st.subheader("📃 Teks Final")
+
+# ================= TEKS FINAL =================
+if st.session_state.ocr_text:
+
+    st.markdown("### 📄 Preview Teks Final")
 
     if mode == "Surat":
-        final_text = f"""{judul}
+        final_text = f"""{st.session_state.judul}
 
-Tanggal : {tanggal}
-Alamat  : {alamat}
+Tanggal : {st.session_state.tanggal}
+Alamat  : {st.session_state.alamat}
 
 {st.session_state.ocr_text}
 """
     else:  # Mode Struk
-        final_text = f"""{judul}
+        final_text = f"""{st.session_state.judul}
 
-Tanggal : {tanggal}
+Tanggal : {st.session_state.tanggal}
 
 {st.session_state.ocr_text}
 """
@@ -259,19 +322,19 @@ Tanggal : {tanggal}
     st.session_state.final_text = final_text
 
     st.text_area(
-        "Preview Teks Final:",
+        "Hasil akhir dokumen:",
         final_text,
         height=300
     )
-# ===================== SMART EXTRACT FUNCTION =====================
+# ================= SMART EXTRACT FUNCTION =================
 def smart_extract(text):
     """
-    Mengambil:
+    Mengambil otomatis:
     - Nama Toko
     - Tanggal
     - Nomor Telepon
-    - Total Harga (format Rupiah)
-    Hanya digunakan untuk Mode = Struk
+    - Total Harga (format Rupiah: Rp 23.500)
+    Hanya dipakai untuk Mode = Struk
     """
 
     nama_toko = "Tidak ditemukan"
@@ -281,7 +344,7 @@ def smart_extract(text):
 
     lines = text.split("\n")
 
-    # 1. Nama Toko → ambil baris huruf besar pertama
+    # 1. Nama Toko → baris huruf besar pertama
     for line in lines:
         clean = line.strip()
         if len(clean) > 3 and clean.isupper():
@@ -293,7 +356,7 @@ def smart_extract(text):
     if phone_match:
         telepon = phone_match.group(0)
 
-    # 3. Tanggal → format umum Indonesia / angka
+    # 3. Tanggal → format umum Indonesia
     date_patterns = [
         r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # 12/01/2026
         r'\d{1,2}\s(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s\d{4}'
@@ -304,12 +367,12 @@ def smart_extract(text):
             tanggal_auto = date_match.group(0)
             break
 
-    # 4. Total Harga → cari Rp terlebih dahulu
+    # 4. Total Harga → cari format Rp dulu
     rupiah_matches = re.findall(r'Rp\s?[\d\.]+', text)
     if rupiah_matches:
         total = rupiah_matches[-1]
     else:
-        # fallback → ambil angka terbesar
+        # fallback: ambil angka terbesar
         numbers = re.findall(r'\d+', text.replace(".", ""))
         if numbers:
             max_number = max(map(int, numbers))
@@ -318,15 +381,15 @@ def smart_extract(text):
     return nama_toko, tanggal_auto, telepon, total
 
 
-# ===================== TAMPILKAN SMART EXTRACT (STRUK ONLY) =====================
+# ================= JALANKAN SMART EXTRACT (STRUK ONLY) =================
 if st.session_state.ocr_text and mode == "Struk":
 
-    st.subheader("📊 Ringkasan Otomatis (Smart Extract)")
+    st.markdown("### 📊 Ringkasan Otomatis (Smart Extract)")
 
-    # Jalankan Smart Extract
+    # Jalankan fungsi
     nama_toko, tanggal_auto, telepon, total = smart_extract(st.session_state.ocr_text)
 
-    # Simpan ke session supaya bisa dipakai Export Excel, PDF, dll
+    # Simpan ke session untuk export PDF/Word/Excel
     st.session_state.summary_data = {
         "nama_toko": nama_toko,
         "tanggal": tanggal_auto,
@@ -334,17 +397,17 @@ if st.session_state.ocr_text and mode == "Struk":
         "total": total
     }
 
-    col_s1, col_s2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with col_s1:
+    with col1:
         st.info(f"🏪 **Nama Toko:** {nama_toko}")
         st.info(f"📅 **Tanggal:** {tanggal_auto}")
 
-    with col_s2:
+    with col2:
         st.info(f"📞 **Telepon:** {telepon}")
         st.success(f"💰 **Total Harga:** {total}")
-# ===================== SIMPAN KE RIWAYAT =====================
-if st.session_state.ocr_text:
+# ================= SIMPAN KE RIWAYAT SCAN =================
+if st.session_state.final_text:
     if st.button("💾 Simpan ke Riwayat"):
         history_item = {
             "time": datetime.now().strftime("%d-%m-%Y %H:%M"),
@@ -353,13 +416,51 @@ if st.session_state.ocr_text:
             "tanggal": st.session_state.tanggal,
             "alamat": st.session_state.alamat,
             "text": st.session_state.ocr_text,
+            "final_text": st.session_state.final_text,
             "summary": st.session_state.summary_data if mode == "Struk" else {}
         }
-        st.session_state.history.append(history_item)
-        st.success("Berhasil disimpan ke riwayat!")
+        st.session_state.scan_history.append(history_item)
+        st.success("Berhasil disimpan ke Riwayat Scan!")
 
 
-# ===================== EXPORT TXT =====================
+# ================= COPY TO CLIPBOARD =================
+if st.session_state.final_text:
+    st.markdown("### 📋 Salin Teks ke Clipboard")
+
+    copy_text = st.session_state.final_text.replace("`", "").replace("$", "")
+
+    components.html(
+        f"""
+        <textarea id="copyText" style="position:absolute; left:-1000px;">{copy_text}</textarea>
+
+        <button onclick="copyToClipboard()" style="
+            width:100%;
+            padding:12px;
+            font-size:16px;
+            border-radius:10px;
+            background-color:#4CAF50;
+            color:white;
+            border:none;
+            cursor:pointer;
+        ">
+        📋 Salin Teks ke Clipboard
+        </button>
+
+        <script>
+        function copyToClipboard() {{
+            var text = document.getElementById("copyText");
+            text.select();
+            text.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("Teks berhasil disalin ke clipboard!");
+        }}
+        </script>
+        """,
+        height=90
+    )
+
+
+# ================= EXPORT TXT =================
 if st.session_state.final_text:
     st.download_button(
         label="⬇ Download TXT",
@@ -369,7 +470,7 @@ if st.session_state.final_text:
     )
 
 
-# ===================== EXPORT PDF =====================
+# ================= EXPORT PDF =================
 def create_pdf(text):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -397,43 +498,9 @@ if st.session_state.final_text:
         file_name="hasil_ocr.pdf",
         mime="application/pdf"
     )
-# ================= COPY TO CLIPBOARD =================
-if st.session_state.final_text:
-    st.subheader("📋 Salin Teks")
 
-    copy_text = st.session_state.final_text.replace("`", "").replace("$", "")
 
-    components.html(
-        f"""
-        <textarea id="copyText" style="position:absolute; left:-1000px;">{copy_text}</textarea>
-
-        <button onclick="copyToClipboard()" style="
-            width:100%;
-            padding:12px;
-            font-size:16px;
-            border-radius:8px;
-            background-color:#4CAF50;
-            color:white;
-            border:none;
-            cursor:pointer;
-        ">
-        📋 Salin Teks ke Clipboard
-        </button>
-
-        <script>
-        function copyToClipboard() {{
-            var text = document.getElementById("copyText");
-            text.select();
-            text.setSelectionRange(0, 99999);
-            document.execCommand("copy");
-            alert("Teks berhasil disalin ke clipboard!");
-        }}
-        </script>
-        """,
-        height=90
-    )
-
-# ===================== EXPORT WORD =====================
+# ================= EXPORT WORD =================
 def create_word(text):
     doc = Document()
     for line in text.split("\n"):
@@ -455,7 +522,7 @@ if st.session_state.final_text:
     )
 
 
-# ===================== EXPORT EXCEL =====================
+# ================= EXPORT EXCEL =================
 def create_excel(summary, full_text):
     wb = Workbook()
     ws = wb.active
@@ -487,19 +554,19 @@ if st.session_state.final_text and mode == "Struk":
     )
 
 
-# ===================== SIDEBAR: RIWAYAT SCAN (KLIK UNTUK LOAD) =====================
+# ================= SIDEBAR: RIWAYAT SCAN (KLIK UNTUK LOAD) =================
 st.sidebar.markdown("## 📚 Riwayat Scan")
 
-if len(st.session_state.history) == 0:
+if len(st.session_state.scan_history) == 0:
     st.sidebar.info("Belum ada data.")
 else:
-    for i, item in enumerate(reversed(st.session_state.history)):
+    for i, item in enumerate(reversed(st.session_state.scan_history)):
         label = f"{item['time']} | {item['mode']} | {item['judul']}"
         if st.sidebar.button(label):
             st.session_state.ocr_text = item["text"]
+            st.session_state.final_text = item["final_text"]
             st.session_state.judul = item["judul"]
             st.session_state.tanggal = item["tanggal"]
             st.session_state.alamat = item["alamat"]
             st.session_state.summary_data = item.get("summary", {})
             st.success("Riwayat berhasil dimuat kembali!")
-
