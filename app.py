@@ -11,6 +11,31 @@ import easyocr
 import cv2
 from io import BytesIO
 
+# ==============================
+# SESSION STATE INIT (WAJIB)
+# ==============================
+if "is_unlocked" not in st.session_state:
+    st.session_state.is_unlocked = False   # default terkunci
+
+if "pin_attempt" not in st.session_state:
+    st.session_state.pin_attempt = ""
+
+if "scan_history" not in st.session_state:
+    st.session_state.scan_history = []
+
+if "ocr_text" not in st.session_state:
+    st.session_state.ocr_text = ""
+
+if "final_text" not in st.session_state:
+    st.session_state.final_text = ""
+
+if "summary_data" not in st.session_state:
+    st.session_state.summary_data = {}
+
+if "zoom_level" not in st.session_state:
+    st.session_state.zoom_level = 1.0
+
+
 # =========================================================
 # 📦 PAKET F1 – MULTI THEME UI (LIGHT, DARK, BLUE, GREEN, MINIMALIST)
 # =========================================================
@@ -859,15 +884,58 @@ if st.button("💾 Simpan Dokumen Sekarang"):
     st.session_state.history.append(record)
     st.success("Data berhasil disimpan ke riwayat!")
 
+# ===== MODE PRIVAT PIN =====
+if "is_unlocked" not in st.session_state:
+    st.session_state.is_unlocked = False
+
+PIN = "1234"
+
+st.sidebar.markdown("## 🔐 Mode Privat")
+
+if not st.session_state.is_unlocked:
+    pin = st.sidebar.text_input("Masukkan PIN", type="password")
+    if st.sidebar.button("🔓 Buka Riwayat"):
+        if pin == PIN:
+            st.session_state.is_unlocked = True
+            st.sidebar.success("Riwayat terbuka")
+            st.rerun()
+        else:
+            st.sidebar.error("PIN salah")
+
+
 # ===============================
 # SIDEBAR – RIWAYAT
 # ===============================
 if st.session_state.is_unlocked:
-    st.sidebar.markdown("## 📜 Riwayat Scan")
+    st.sidebar.markdown("📁 Riwayat Scan")
 
-if not st.session_state.history:
-    st.sidebar.info("Belum ada riwayat.")
+if st.session_state.is_unlocked:
+
+    if len(st.session_state.scan_history) == 0:
+        st.sidebar.info("Belum ada riwayat.")
+    else:
+        if st.sidebar.button("🔥 Hapus Semua Riwayat"):
+            st.session_state.scan_history.clear()
+            st.sidebar.success("Semua riwayat terhapus")
+            st.rerun()
+
+        for i, item in enumerate(reversed(st.session_state.scan_history)):
+            col1, col2 = st.sidebar.columns([4,1])
+            with col1:
+                if st.button(f"📄 {item['time']} | {item['mode']}", key=f"load_{i}"):
+                    st.session_state.ocr_text = item["text"]
+                    st.session_state.final_text = item["final_text"]
+                    st.success("Riwayat dimuat")
+            with col2:
+                if st.button("❌", key=f"del_{i}"):
+                    real_index = len(st.session_state.scan_history) - 1 - i
+                    st.session_state.scan_history.pop(real_index)
+                    st.sidebar.success("Riwayat dihapus")
+                    st.rerun()
+
 else:
+    st.sidebar.warning("🔒 Riwayat terkunci. Masukkan PIN.")
+
     for i, item in enumerate(st.session_state.history):
         with st.sidebar.expander(f"{i+1}. {item['mode']} | {item['time']}"):
             st.json(item["data"])
