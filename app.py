@@ -141,11 +141,25 @@ init_state()
 st.sidebar.title("⚙️ Pengaturan OCR")
 
 lang_map = {
-    "Indonesia": ["id"],
-    "Inggris": ["en"],
-    "Indonesia + Inggris": ["id", "en"],
-    "Jepang": ["ja"],
-    "Arab": ["ar"]
+    "Indonesia 🇮🇩": ["ind"],
+    "English 🇬🇧": ["eng"],
+    "Indonesia + English 🇮🇩🇬🇧": ["ind", "eng"],
+    "Japanese 🇯🇵": ["jpn"],
+    "Arabic 🇸🇦": ["ara"],
+
+    "Spanish 🇪🇸": ["spa"],
+    "French 🇫🇷": ["fra"],
+    "German 🇩🇪": ["deu"],
+    "Italian 🇮🇹": ["ita"],
+    "Portuguese 🇵🇹": ["por"],
+    "Dutch 🇳🇱": ["nld"],
+    "Turkish 🇹🇷": ["tur"],
+    "Vietnamese 🇻🇳": ["vie"],
+    "Thai 🇹🇭": ["tha"],
+    "Korean 🇰🇷": ["kor"],
+    "Chinese Simplified 🇨🇳": ["chi_sim"],
+    "Chinese Traditional 🇹🇼": ["chi_tra"],
+    "Russian 🇷🇺": ["rus"]
 }
 
 lang_choice = st.sidebar.selectbox(
