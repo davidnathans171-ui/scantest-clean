@@ -11,6 +11,16 @@ import easyocr
 import cv2
 from io import BytesIO
 
+# ===============================
+# INIT SESSION STATE (WAJIB)
+# ===============================
+if "ui_lang" not in st.session_state:
+    st.session_state.ui_lang = "id"   # default Indonesia
+
+if "is_unlocked" not in st.session_state:
+    st.session_state.is_unlocked = False
+
+
 # ==============================
 # SESSION STATE INIT (WAJIB)
 # ==============================
@@ -220,6 +230,20 @@ lang_map = {
 def init_state():
     if "ui_lang" not in st.session_state:
         st.session_state.ui_lang = "Indonesia"
+
+st.sidebar.markdown("## 🌍 Bahasa Aplikasi")
+
+ui_lang = st.sidebar.selectbox(
+    "Pilih Bahasa",
+    options=["id", "en", "es"],
+    format_func=lambda x: {
+        "id": "🇮🇩 Indonesia",
+        "en": "🇺🇸 English",
+        "es": "🇪🇸 Spanish"
+    }[x]
+)
+
+st.session_state.ui_lang = ui_lang
 
 
 lang_choice = st.sidebar.selectbox(
