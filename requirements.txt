@@ -1,8 +1,8 @@
 streamlit
-pillow
-numpy
 easyocr
-python-docx
+opencv-python-headless
+numpy
+Pillow
 reportlab
-protobuf==3.20.3
+python-docx
 openpyxl
