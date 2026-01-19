@@ -195,8 +195,17 @@ st.sidebar.title("🌐 Bahasa Aplikasi")
 ui_lang = st.sidebar.selectbox(
     "Pilih Bahasa UI",
     ["Indonesia", "English", "Spanish"],
-    index=["Indonesia", "English", "Spanish"].index(
-        st.session_state.ui_lang
+    UI_LANG_OPTIONS = ["Indonesia", "English", "Spanish"]
+
+if "ui_lang" not in st.session_state or st.session_state.ui_lang not in UI_LANG_OPTIONS:
+    st.session_state.ui_lang = "Indonesia"
+
+st.session_state.ui_lang = st.sidebar.selectbox(
+    "🌐 Bahasa Aplikasi",
+    UI_LANG_OPTIONS,
+    index=UI_LANG_OPTIONS.index(st.session_state.ui_lang)
+)
+
     )
 )
 
