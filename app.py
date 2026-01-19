@@ -135,9 +135,64 @@ def init_state():
 
 init_state()
 
+UI_TEXT = {
+    "Indonesia": {
+        "app_title": "ScanText Pro - SUPER FINAL",
+        "choose_image": "Pilih Sumber Gambar",
+        "upload": "Upload",
+        "camera": "Kamera",
+        "upload_image": "Upload gambar",
+        "private_mode": "Mode Privat",
+        "enter_pin": "Masukkan PIN",
+        "open_history": "Buka Riwayat",
+        "history_locked": "🔒 Riwayat terkunci. Masukkan PIN.",
+        "reset_system": "Reset Sistem (Darurat)"
+    },
+
+    "English": {
+        "app_title": "ScanText Pro - SUPER FINAL",
+        "choose_image": "Choose Image Source",
+        "upload": "Upload",
+        "camera": "Camera",
+        "upload_image": "Upload image",
+        "private_mode": "Private Mode",
+        "enter_pin": "Enter PIN",
+        "open_history": "Open History",
+        "history_locked": "🔒 History is locked. Enter PIN.",
+        "reset_system": "Emergency System Reset"
+    },
+
+    "Spanish": {
+        "app_title": "ScanText Pro - SUPER FINAL",
+        "choose_image": "Elegir fuente de imagen",
+        "upload": "Subir",
+        "camera": "Cámara",
+        "upload_image": "Subir imagen",
+        "private_mode": "Modo Privado",
+        "enter_pin": "Ingresar PIN",
+        "open_history": "Abrir Historial",
+        "history_locked": "🔒 Historial bloqueado. Ingrese PIN.",
+        "reset_system": "Reinicio de sistema (Emergencia)"
+    }
+}
+
+
 # =========================================================
 # SIDEBAR - PENGATURAN OCR
 # =========================================================
+st.sidebar.title("🌐 Bahasa Aplikasi")
+
+ui_lang = st.sidebar.selectbox(
+    "Pilih Bahasa UI",
+    ["Indonesia", "English", "Spanish"],
+    index=["Indonesia", "English", "Spanish"].index(
+        st.session_state.ui_lang
+    )
+)
+
+st.session_state.ui_lang = ui_lang
+
+
 st.sidebar.title("⚙️ Pengaturan OCR")
 
 lang_map = {
@@ -162,6 +217,11 @@ lang_map = {
     "Russian 🇷🇺": ["rus"]
 }
 
+def init_state():
+    if "ui_lang" not in st.session_state:
+        st.session_state.ui_lang = "Indonesia"
+
+
 lang_choice = st.sidebar.selectbox(
     "Pilih Bahasa OCR:",
     list(lang_map.keys())
@@ -171,7 +231,10 @@ st.session_state.language = lang_map[lang_choice]
 # =========================================================
 # PILIH SUMBER GAMBAR
 # =========================================================
-st.markdown("## 📷 Pilih Sumber Gambar")
+T = UI_TEXT[st.session_state.ui_lang]
+
+st.markdown(f"## 📷 {T['choose_image']}")
+
 
 source = st.radio(
     "Ambil gambar dari:",
