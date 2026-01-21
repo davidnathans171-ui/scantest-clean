@@ -1,7 +1,11 @@
-streamlit
-easyocr
-opencv-python-headless
+streamlit==1.53.0
+easyocr==1.7.1
+opencv-python-headless==4.9.0.80
 pillow
 numpy
-torch==2.0.1
-torchvision==0.15.2
+pandas
+matplotlib
+reportlab
+python-docx
+openpyxl
+
