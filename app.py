@@ -192,20 +192,26 @@ UI_TEXT = {
 # =========================================================
 st.sidebar.title("🌐 Bahasa Aplikasi")
 
-# ==============================
-# 🌐 BAHASA APLIKASI (UI LANG)
-# ==============================
+# ===============================
+# MODE BAHASA APLIKASI (UI)
+# ===============================
+
 UI_LANG_OPTIONS = ["Indonesia", "English", "Spanish"]
 
 if "ui_lang" not in st.session_state:
     st.session_state.ui_lang = "Indonesia"
 
-st.session_state.ui_lang = st.sidebar.selectbox(
+# kalau value tidak ada di list, reset ke default
+if st.session_state.ui_lang not in UI_LANG_OPTIONS:
+    st.session_state.ui_lang = "Indonesia"
+
+selected_ui_lang = st.sidebar.selectbox(
     "🌐 Bahasa Aplikasi",
     UI_LANG_OPTIONS,
     index=UI_LANG_OPTIONS.index(st.session_state.ui_lang)
 )
 
+st.session_state.ui_lang = selected_ui_lang
 
 
 st.sidebar.title("⚙️ Pengaturan OCR")
