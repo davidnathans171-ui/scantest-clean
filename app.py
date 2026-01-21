@@ -7,7 +7,17 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import easyocr
+@st.cache_resource
+def load_ocr_engine(langs):
+    try:
+        import easyocr
+        return easyocr.Reader(langs, gpu=False)
+    except Exception as e:
+        st.error(f"Gagal memuat OCR Engine: {e}")
+        return None
+
+reader = load_ocr_engine(["id", "en"])
+
 import cv2
 from io import BytesIO
 
@@ -374,6 +384,12 @@ if reader is None:
     st.error("Gagal memuat OCR Engine. Periksa instalasi EasyOCR.")
 else:
     st.success("OCR Engine siap digunakan.")
+
+if reader is None:
+    st.warning("OCR Engine belum siap. Cek instalasi EasyOCR.")
+else:
+    result = reader.readtext(image)
+
 
 # =========================
 # PILIH GAMBAR UNTUK OCR
