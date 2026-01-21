@@ -1,12 +1,7 @@
 streamlit
 easyocr
 opencv-python-headless
-numpy
 pillow
+numpy
 torch
 torchvision
-pandas
-matplotlib
-fpdf
-python-docx
-openpyxl
