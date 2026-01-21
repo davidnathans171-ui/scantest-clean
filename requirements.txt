@@ -1,12 +1,5 @@
 streamlit
-easyocr==1.7.1
-torch==2.0.1
-torchvision==0.15.2
+easyocr
 opencv-python-headless
 pillow
 numpy
-pandas
-matplotlib
-fpdf
-python-docx
-openpyxl
